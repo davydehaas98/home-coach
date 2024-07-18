@@ -1,0 +1,44 @@
+name: Application
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      - name: Setup Go
+        uses: actions/setup-go@v5.0.0
+        with:
+          go-version: '1.22.0'
+      - name: Cache dependencies
+        uses: actions/cache@v4.0.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Verify dependencies
+        run: go mod verify
+      - name: Build
+        run: go build
+      - name: Test
+        run: go test ./... -coverprofile=coverage.out
+  analyse:
+    name: Analyse
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      - name: Analyse
+        run: go vet
+      - name: Install linter
+        run: go install golang.org/x/lint/golinter@1.0.0
+      - name: Run linter
+        run: golint ./..
