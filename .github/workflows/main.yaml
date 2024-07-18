@@ -39,6 +39,6 @@ jobs:
       - name: Analyse
         run: go vet
       - name: Install linter
-        run: go install golang.org/x/lint/golinter@v1.59.0
+        run: go install golang.org/x/lint/golinter@1.59.0
       - name: Run linter
         run: golint ./..
