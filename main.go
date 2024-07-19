@@ -13,8 +13,6 @@ import (
 const BASE_URL = "https://api.netatmo.com"
 const TOKEN_URL = BASE_URL + "/oauth2/token"
 
-var logger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime)
-
 func main() {
 	token := refreshToken()
 	log.Println(token)
