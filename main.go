@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"log"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 
 const BASE_URL = "https://api.netatmo.com"
 const TOKEN_URL = BASE_URL + "/oauth2/token"
+
+var logger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime)
 
 func main() {
 	token := refreshToken()
@@ -29,42 +32,54 @@ func main() {
 func refreshToken() string {
 	clientId := os.Getenv("HC_CLIENT_ID")
 	if clientId == "" {
-		// log.Fatal(("HC_CLIENT_ID not set"))
+		log.Fatal("HC_CLIENT_ID not set")
 	}
-	clientSecret := os.Getenv("HC_CLIENT_ID")
+	clientSecret := os.Getenv("HC_CLIENT_SECRET")
 	if clientSecret == "" {
-		// log.Fatal(("HC_CLIENT_SECRET not set"))
+		log.Fatal("HC_CLIENT_SECRET not set")
 	}
-	grantType := "refresh_token"
 	refreshToken := os.Getenv("HC_REFRESH_TOKEN")
+	if refreshToken == "" {
+		log.Fatal("HC_REFRESH_TOKEN not set")
+	}
 	// expiration := 0
 
-	url, err := url.Parse(TOKEN_URL)
+	body := url.Values{}
+	body.Set("client_id", clientId)
+	body.Set("client_secret", clientSecret)
+	body.Set("grant_type", "refresh_token")
+	body.Set("refresh_token", refreshToken)
+
+	log.Println("Refreshing token..")
+	request, err := http.NewRequest("POST", TOKEN_URL, bytes.NewReader([]byte(body.Encode())))
 	if err != nil {
-		// log.Fatal("TOKEN_URL could not be parsed", err)
+		log.Fatal("Could not create request.", err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	log.Println(request)
+
+	client := http.Client{Timeout: 10 * time.Second}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatal("Could not send request.", err)
+	}
+	if response.StatusCode != 200 {
+		log.Fatal("Could not refresh token.", response.Status)
+	}
+	defer response.Body.Close()
+
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal("Could not get response body.", err)
 	}
 
-	query := url.Query()
-	query.Set("grant_type", grantType)
-	query.Set("refresh_token", refreshToken)
-	query.Set("client_id", clientId)
-	query.Set("client_secret", clientSecret)
-	url.RawQuery = query.Encode()
+	log.Println("Refreshed token.", string(responseBody))
+	return string(responseBody)
+}
 
-	log.Println("Refreshing token..", url.RawQuery)
-	response, err := http.Post(url.String(), "application/json", nil)
-	if err != nil {
-		log.Fatal("Could not refresh token.", err)
-	}
-	log.Println("Refreshed token.", response)
-	defer func(body io.ReadCloser) {
-		_ = body.Close()
-	}(response.Body)
-
-	token, _ := io.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal("Could not get token.", err)
-	}
-
-	return string(token)
+type RefreshTokenPostRequest struct {
+	ClientId     string `form:"client_id"`
+	ClientSecret string `form:"client_secret"`
+	GrantType    string `form:"grant_type"`
+	RefreshToken string `form:"refresh_token"`
 }
