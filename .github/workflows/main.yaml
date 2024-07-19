@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
@@ -45,6 +48,9 @@ jobs:
     name: Release
     needs: [ build, analyse ]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -58,16 +64,17 @@ jobs:
         uses: docker/setup-buildx-action@4fd812986e6c8c2a69e18311145f9371337f27d4 # v3.4.0
         with:
           platforms: linux/amd64,linux/arm64
-      - name: Login to GHCR
+      - name: Login to registry
         uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
+      - name: Build and push to registry
         uses: docker/build-push-action@1ca370b3a9802c92e886402e0dd88098a2533b12 # v6.4.1
         with:
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/davydehaas98/home-coach:latest
+           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
