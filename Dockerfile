@@ -1,4 +1,4 @@
-FROM golang:1.22 AS build
+FROM golang:1.22.5 AS build
 
 ARG TARGET_OS
 ARG TARGET_ARCH
