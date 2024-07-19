@@ -12,7 +12,7 @@ RUN go mod verify
 COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGET_OS GOARCH=$TARGET_ARCH go build -o /app
 
-FROM scratch as runtime
+FROM scratch AS runtime
 COPY --from=build /app /app
 USER app
 
