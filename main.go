@@ -27,26 +27,20 @@ func main() {
 	ticker.Stop()
 }
 
-func refreshToken() string {
-	clientId := os.Getenv("HC_CLIENT_ID")
-	if clientId == "" {
-		log.Fatal("HC_CLIENT_ID not set")
+func getEnv(key string) string {
+	env := os.Getenv(key)
+	if env == "" {
+		log.Fatalf("%s not set", key)
 	}
-	clientSecret := os.Getenv("HC_CLIENT_SECRET")
-	if clientSecret == "" {
-		log.Fatal("HC_CLIENT_SECRET not set")
-	}
-	refreshToken := os.Getenv("HC_REFRESH_TOKEN")
-	if refreshToken == "" {
-		log.Fatal("HC_REFRESH_TOKEN not set")
-	}
-	// expiration := 0
+	return env
+}
 
+func refreshToken() string {
 	body := url.Values{}
-	body.Set("client_id", clientId)
-	body.Set("client_secret", clientSecret)
+	body.Set("client_id", getEnv("HC_CLIENT_ID"))
+	body.Set("client_secret", getEnv("HC_CLIENT_SECRET"))
 	body.Set("grant_type", "refresh_token")
-	body.Set("refresh_token", refreshToken)
+	body.Set("refresh_token", getEnv("HC_REFRESH_TOKEN"))
 
 	log.Println("Refreshing token..")
 	request, err := http.NewRequest("POST", TOKEN_URL, bytes.NewReader([]byte(body.Encode())))

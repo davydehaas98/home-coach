@@ -16,4 +16,6 @@ resources:
     memory: 16Mi
 
 config:
-  gatewayAddress: ''
+  clientId: ''
+  clientSecret: ''
+  refreshToken: ''

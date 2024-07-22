@@ -33,8 +33,12 @@ spec:
       containers:
         - name: home-coach
           env:
-            - name: SGPE_HOST
-              value: {{ squote .Values.config.gatewayAddress }}
+            - name: HC_CLIENT_ID
+              value: {{ squote .Values.config.clientId }}
+            - name: HC_CLIENT_SECRET
+              value: {{ squote .Values.config.clientSecret }}
+            - name: HC_REFRESH_TOKEN
+              value: {{ squote .Values.config.refreshToken }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
