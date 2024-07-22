@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: home-coach
+  labels:
+    app.kubernetes.io/name: home-coach
+    app.kubernetes.io/instance: home-coach
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: home-coach
+      app.kubernetes.io/instance: home-coach
+  endpoints:
+    - port: http
+      path: /metrics

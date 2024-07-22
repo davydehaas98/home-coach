@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home-coach
+  labels:
+    helm.sh/chart: home-coach
+    app.kubernetes.io/name: home-coach
+    app.kubernetes.io/instance: home-coach
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: home-coach
+      app.kubernetes.io/instance: home-coach
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: home-coach
+        app.kubernetes.io/instance: home-coach
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: home-coach
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        runAsNonRoot: true
+      containers:
+        - name: home-coach
+          env:
+            - name: SGPE_HOST
+              value: {{ squote .Values.config.gatewayAddress }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities:
+              drop:
+                - ALL
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.Version }}"
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
