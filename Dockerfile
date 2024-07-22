@@ -1,7 +1,4 @@
-FROM golang:1.22.5 AS build
-
-ARG TARGET_OS
-ARG TARGET_ARCH
+FROM --platform=$BUILDPLATFORM golang:1.22.5 AS build
 
 WORKDIR /app
 
@@ -10,7 +7,9 @@ RUN go mod download
 RUN go mod verify
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=$TARGET_OS GOARCH=$TARGET_ARCH go build -o /app
+
+ARG TARGETOS ARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /app
 
 FROM scratch AS runtime
 COPY --from=build /app /app
