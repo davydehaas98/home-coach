@@ -20,8 +20,10 @@ func LoadEnv() map[string]string {
 func SetEnv(key, value string) map[string]string {
 	env := LoadEnv()
 	env[key] = value
-	godotenv.Write(env, ENV_FILE)
-	// Reload env
+	err := godotenv.Write(env, ENV_FILE)
+	if err != nil {
+		log.Fatalf("Error writing '%s' file: %s", ENV_FILE, err)
+	}
 	return LoadEnv()
 }
 
