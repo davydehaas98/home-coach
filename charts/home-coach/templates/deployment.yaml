@@ -21,10 +21,10 @@ spec:
         app.kubernetes.io/name: home-coach
         app.kubernetes.io/instance: home-coach
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+    {{- with .Values.imagePullSecrets }}
+    imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
       serviceAccountName: home-coach
       securityContext:
         runAsUser: 1000

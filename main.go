@@ -1,77 +1,77 @@
 package main
 
 import (
-	"bytes"
-	"io"
+	"home-coach/model"
+	"home-coach/util"
 	"log"
-	"net/http"
 	"net/url"
-	"os"
 	"time"
 )
 
 const BASE_URL = "https://api.netatmo.com"
 const TOKEN_URL = BASE_URL + "/oauth2/token"
+const DATA_URL = BASE_URL + "/api/gethomecoachsdata"
+
+var env map[string]string
+
+func init() {
+	env = util.LoadEnv()
+}
 
 func main() {
-	token := refreshToken()
-	log.Println(token)
-
-	log.Println("Starting Ticker..")
+	log.Println("Starting ticker..")
 	ticker := time.NewTicker(5 * time.Second)
 
 	for t := range ticker.C {
+		if util.IsExpired(env["HC_EXPIRATION"]) {
+			refreshAccessToken()
+		}
+		getData()
 		log.Println("Ticked at", t)
 	}
 
 	ticker.Stop()
 }
 
-func getEnv(key string) string {
-	env := os.Getenv(key)
-	if env == "" {
-		log.Fatalf("%s not set", key)
-	}
-	return env
+func getData() model.DataResponse {
+	log.Println("Retrieving data..")
+
+	request := util.CreateGetRequest(DATA_URL)
+	bearer := "Bearer " + env["HC_ACCESS_TOKEN"]
+	request.Header.Set("Authorization", bearer)
+	request.Header.Set("accept", "application/json")
+
+	response := util.DoRequest(request)
+	log.Println(response)
+
+	result := util.UnmarshalJson[model.DataResponse](response)
+
+	log.Println("Retrieved data.")
+
+	return result
 }
 
-func refreshToken() string {
+func refreshAccessToken() {
+	log.Println("Refreshing access token..")
+
 	body := url.Values{}
-	body.Set("client_id", getEnv("HC_CLIENT_ID"))
-	body.Set("client_secret", getEnv("HC_CLIENT_SECRET"))
+	body.Set("client_id", env["HC_CLIENT_ID"])
+	body.Set("client_secret", env["HC_CLIENT_SECRET"])
 	body.Set("grant_type", "refresh_token")
-	body.Set("refresh_token", getEnv("HC_REFRESH_TOKEN"))
+	body.Set("refresh_token", env["HC_REFRESH_TOKEN"])
 
-	log.Println("Refreshing token..")
-	request, err := http.NewRequest("POST", TOKEN_URL, bytes.NewReader([]byte(body.Encode())))
-	if err != nil {
-		log.Fatal("Could not create request.", err)
-	}
+	request := util.CreatePostRequest(TOKEN_URL, &body)
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	log.Println(request)
 
-	client := http.Client{Timeout: 10 * time.Second}
-	response, err := client.Do(request)
-	if err != nil {
-		log.Fatal("Could not send request.", err)
-	}
-	if response.StatusCode != 200 {
-		log.Fatal("Could not refresh token.", response.Status)
-	}
-	defer response.Body.Close()
+	response := util.DoRequest(request)
 
-	responseBody, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal("Could not get response body.", err)
-	}
+	result := util.UnmarshalJson[model.RefreshTokenResponse](response)
 
-	log.Println("Refreshed token.", string(responseBody))
-	return string(responseBody)
-}
+	// Set new tokens in .env file
+	env = util.SetEnv("HC_REFRESH_TOKEN", result.RefreshToken)
+	env = util.SetEnv("HC_ACCESS_TOKEN", result.AccessToken)
+	expiration := time.Now().UTC().Add(time.Second * time.Duration(result.ExpiresIn)).Format(time.RFC3339)
+	env = util.SetEnv("HC_EXPIRATION", expiration)
 
-type RefreshTokenPostRequest struct {
-	ClientId     string `form:"client_id"`
-	ClientSecret string `form:"client_secret"`
-	GrantType    string `form:"grant_type"`
-	RefreshToken string `form:"refresh_token"`
+	log.Println("Refreshed token.")
 }
