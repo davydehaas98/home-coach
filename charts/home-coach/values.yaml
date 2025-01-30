@@ -4,7 +4,7 @@ revisionHistoryLimit: 0
 image:
   repository: ghcr.io/davydehaas98/home-coach
   pullPolicy: IfNotPresent
-  tag: ''
+  tag: '@sha256:71c9d68e9321af733bd2524688687e94ebace0a0578f85a957d3dc61865c7683'
 
 imagePullSecrets: [ ]
 
